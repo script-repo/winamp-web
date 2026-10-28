@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>winamp-web (clean-room 2.81 classic clone)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="desk"></div>
+  <div id="panel">
+    <b>winamp-web</b> <span id="skinname"></span>
+    <div class="row">
+      <button id="btn-audio">Open audio…</button>
+      <button id="btn-skin">Open skin (.wsz)…</button>
+      <button id="btn-default">Default skin</button>
+      <button id="btn-tone">Test tone</button>
+    </div>
+    <div class="row">Scale:
+      <label><input type="radio" name="scale" value="1" /> 1x</label>
+      <label><input type="radio" name="scale" value="2" /> 2x</label>
+      <label><input type="radio" name="scale" value="3" /> 3x</label>
+    </div>
+    <fieldset>
+      <legend>Visualizer</legend>
+      <div class="row"><label title="Open unknown U-01/H-01: rows the bar/scope baseline sits below the bottom visible row. Code reading = 2.">
+        <b>VERTICAL BASELINE OFFSET</b> <input id="visOffset" type="number" min="-4" max="8" step="1" /></label></div>
+      <div class="row">
+        <label>Mode <select id="visMode"><option value="1">Analyzer</option><option value="2">Oscilloscope</option><option value="0">Off</option></select></label>
+        <label>Style <select id="visStyle"><option value="0">Normal</option><option value="1">Fire</option><option value="2">Line</option></select></label>
+        <label><input type="checkbox" id="visThin" /> thin bands</label>
+      </div>
+      <div class="row">
+        <label>Scope <select id="scopeStyle"><option value="0">Dots</option><option value="1">Lines</option><option value="2">Solid</option></select></label>
+        <label>Falloff <select id="falloff"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+        <label><input type="checkbox" id="peaks" /> peaks</label>
+        <label>Peak falloff <select id="peakFalloff"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+      </div>
+    </fieldset>
+    <div class="hint">Drop a .wsz skin or an audio file anywhere. Drop .eqf / .q1 onto the EQ to import.</div>
+    <input type="file" id="file-audio" accept="audio/*" hidden />
+    <input type="file" id="file-skin" accept=".wsz,.zip" hidden />
+    <input type="file" id="file-eq" accept=".eqf,.q1,.EQF" hidden />
+  </div>
+  <div id="menu" hidden></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+// Classic skin engine (report O-05..O-16, builder notes B-1/B-3).
+import { unzipSync } from 'fflate';
+import { decodeBmp } from './bmp';
+
+export const BITMAPS = ['main', 'titlebar', 'cbuttons', 'playpaus', 'monoster', 'shufrep', 'numbers',
+  'nums_ex', 'text', 'posbar', 'volume', 'balance', 'eqmain', 'eq_ex'] as const;
+export type BitmapName = typeof BITMAPS[number];
+
+// O-14: default visualization palette (24 RGB entries) read from winamp.exe .data.
+export const DEFAULT_VISCOLORS: [number, number, number][] = [
+  [0, 0, 0], [24, 33, 41], [239, 49, 16], [206, 41, 16], [214, 90, 0], [214, 102, 0], [214, 115, 0],
+  [198, 123, 8], [222, 165, 24], [214, 181, 33], [189, 222, 41], [148, 222, 33], [41, 206, 16],
+  [50, 190, 16], [57, 181, 16], [49, 156, 8], [41, 148, 0], [24, 132, 8], [255, 255, 255],
+  [214, 214, 222], [181, 189, 189], [160, 170, 175], [148, 156, 165], [150, 150, 150],
+];
+
+export interface Region { numPoints: number[]; points: number[] }
+export interface Skin {
+  name: string;
+  bmp: Partial<Record<BitmapName, HTMLCanvasElement>>;
+  /** which bitmaps came from the loaded skin vs. the default fallback */
+  source: Partial<Record<BitmapName, 'skin' | 'default' | 'volume-fallback'>>;
+  viscolors: [number, number, number][];
+  regions: Record<string, Region | null>;
+  pledit: Record<string, string>;
+}
+
+function toCanvas(bytes: Uint8Array): HTMLCanvasElement {
+  const img = decodeBmp(bytes);
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const ctx = c.getContext('2d')!;
+  ctx.putImageData(new ImageData(img.data as unknown as Uint8ClampedArray<ArrayBuffer>, img.width, img.height), 0, 0);
+  return c;
+}
+
+/** O-12: viscolor.txt parser. Up to 24 lines; each line: skip space/comma/tab, read up to 3
+ * decimal ints (low byte kept). A line not starting with a digit, or ending before the third
+ * number, stops parsing; unread colours keep their defaults. Lines are truncated at 89 chars
+ * (fgets buffer of 90). Trailing text after the 3rd number is ignored. */
+export function parseViscolor(text: string): [number, number, number][] {
+  const pal = DEFAULT_VISCOLORS.map((c) => [...c] as [number, number, number]);
+  const lines = text.split('\n');
+  for (let li = 0; li < 24 && li < lines.length; li++) {
+    const s = lines[li].slice(0, 89);
+    let p = 0; const vals: number[] = [];
+    let stop = false;
+    while (vals.length < 3) {
+      while (s[p] === ' ' || s[p] === ',' || s[p] === '\t') p++;
+      const ch = s.charCodeAt(p);
+      if (!(ch >= 48 && ch <= 57)) { stop = true; break; }
+      let v = 0;
+      while (p < s.length && s.charCodeAt(p) >= 48 && s.charCodeAt(p) <= 57) { v = v * 10 + (s.charCodeAt(p) - 48); p++; }
+      vals.push(v & 0xff);
+    }
+    // Partial lines still write the numbers they read before stopping (bytes are stored as parsed).
+    for (let k = 0; k < vals.length; k++) pal[li][k] = vals[k];
+    if (stop) break;
+  }
+  return pal;
+}
+
+/** Minimal INI reader (GetPrivateProfileString semantics: case-insensitive section/key). */
+export function parseIni(text: string): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {};
+  let sec = '';
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith(';')) continue;
+    const m = line.match(/^\[(.*)\]$/);
+    if (m) { sec = m[1].trim().toLowerCase(); out[sec] ??= {}; continue; }
+    const eq = line.indexOf('=');
+    if (eq < 0 || !sec) continue;
+    const k = line.slice(0, eq).trim().toLowerCase();
+    if (!(k in out[sec])) out[sec][k] = line.slice(eq + 1).trim();
+  }
+  return out;
+}
+
+/** O-15: integer-list parser for NumPoints / PointList (separators space/tab/comma, optional '-'). */
+export function parseIntList(s: string | undefined): number[] {
+  if (!s) return [];
+  const out: number[] = []; let p = 0;
+  for (;;) {
+    while (s[p] === ' ' || s[p] === '\t' || s[p] === ',') p++;
+    let sign = 1;
+    if (s[p] === '-') { sign = -1; p++; }
+    const start = p;
+    while (p < s.length && s.charCodeAt(p) >= 48 && s.charCodeAt(p) <= 57) p++;
+    if (p === start) break;
+    out.push(sign * parseInt(s.slice(start, p), 10));
+  }
+  return out;
+}
+
+export function parseRegion(text: string): Record<string, Region | null> {
+  const ini = parseIni(text);
+  const res: Record<string, Region | null> = {};
+  for (const sec of ['normal', 'windowshade', 'equalizer', 'equalizerws']) {
+    const s = ini[sec];
+    const np = parseIntList(s?.['numpoints']);
+    const pl = parseIntList(s?.['pointlist']);
+    res[sec] = np.length && pl.length ? { numPoints: np, points: pl } : null;
+  }
+  return res;
+}
+
+async function fetchBytes(url: string): Promise<Uint8Array | null> {
+  try { const r = await fetch(url); if (!r.ok) return null; return new Uint8Array(await r.arrayBuffer()); }
+  catch { return null; }
+}
+
+let defaultSkin: Skin | null = null;
+export async function loadDefaultSkin(): Promise<Skin> {
+  if (defaultSkin) return defaultSkin;
+  const skin: Skin = { name: 'Base skin (2.81 built-in)', bmp: {}, source: {}, viscolors: DEFAULT_VISCOLORS, regions: {}, pledit: {} };
+  const base = `${import.meta.env.BASE_URL}default-skin/`;
+  await Promise.all(BITMAPS.map(async (n) => {
+    const b = await fetchBytes(`${base}${n}.bmp`);
+    if (b) { skin.bmp[n] = toCanvas(b); skin.source[n] = 'default'; }
+  }));
+  defaultSkin = skin;
+  return skin;
+}
+
+/** Load a .wsz (zip). Names are matched case-insensitively, subfolders ignored (U-08 decision).
+ * Per-file fallback to the default skin (O-06). balance.bmp missing -> this skin's volume.bmp (O-07).
+ * nums_ex.bmp preferred over numbers.bmp (O-07); handled at draw time via skin.bmp.nums_ex. */
+export async function loadWsz(file: ArrayBuffer, name: string): Promise<Skin> {
+  const def = await loadDefaultSkin();
+  const files = unzipSync(new Uint8Array(file));
+  const byName = new Map<string, Uint8Array>();
+  for (const [path, data] of Object.entries(files)) {
+    const bn = path.split(/[\\/]/).pop()!.toLowerCase();
+    if (!bn || byName.has(bn)) continue; // first occurrence wins
+    byName.set(bn, data);
+  }
+  const skin: Skin = { name, bmp: {}, source: {}, viscolors: DEFAULT_VISCOLORS, regions: {}, pledit: {} };
+  for (const n of BITMAPS) {
+    const d = byName.get(`${n}.bmp`);
+    if (d) {
+      try { skin.bmp[n] = toCanvas(d); skin.source[n] = 'skin'; continue; }
+      catch (e) { console.warn('skin bitmap decode failed', n, e); }
+    }
+    if (n === 'nums_ex') continue; // no built-in nums_ex
+    if (n === 'balance') {
+      // O-07: with a skin loaded, a missing balance.bmp uses the (resolved) volume bitmap,
+      // never the built-in balance resource.
+      skin.bmp.balance = skin.bmp.volume; skin.source.balance = 'volume-fallback'; continue;
+    }
+    if (def.bmp[n]) { skin.bmp[n] = def.bmp[n]; skin.source[n] = 'default'; }
+  }
+  const dec = new TextDecoder('latin1');
+  const vc = byName.get('viscolor.txt');
+  if (vc) skin.viscolors = parseViscolor(dec.decode(vc));
+  const rg = byName.get('region.txt');
+  if (rg) skin.regions = parseRegion(dec.decode(rg));
+  const pe = byName.get('pledit.txt');
+  if (pe) skin.pledit = parseIni(dec.decode(pe))['text'] ?? {};
+  return skin;
+}

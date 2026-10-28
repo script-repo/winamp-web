@@ -1,0 +1,14 @@
+html, body { margin: 0; height: 100%; background: #1d2a33; font: 12px system-ui, sans-serif; color: #ddd; }
+#desk { position: absolute; inset: 0; overflow: hidden; }
+.wa-window { position: absolute; line-height: 0; user-select: none; }
+.wa-window canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+#panel { position: fixed; right: 8px; bottom: 8px; background: #0b1218e6; border: 1px solid #456; padding: 8px; max-width: 460px; z-index: 10; }
+#panel .row { margin: 4px 0; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+#panel fieldset { border: 1px solid #456; margin: 6px 0; }
+#panel .hint { color: #8aa; }
+#panel input[type=number] { width: 48px; }
+#menu { position: fixed; z-index: 20; background: #e4e4e4; color: #000; border: 1px solid #333; box-shadow: 2px 2px 0 #0006; min-width: 200px; font: 12px Tahoma, sans-serif; }
+#menu div { padding: 3px 14px; cursor: default; white-space: nowrap; }
+#menu div:hover { background: #0a246a; color: #fff; }
+#menu hr { margin: 2px 0; border: 0; border-top: 1px solid #999; }
+body.hide-panel #panel { display: none; }
