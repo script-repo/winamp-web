@@ -1,0 +1,11 @@
+import { chromium } from 'playwright-core';
+import os from 'node:os';
+const exe = `${os.homedir()}/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell`;
+const b = await chromium.launch({ executablePath: exe });
+const p = await b.newPage();
+p.on('console', (m) => console.log('console', m.type(), m.text()));
+p.on('pageerror', (e) => console.log('pageerror', e.stack || e));
+p.on('requestfailed', (r) => console.log('fail', r.url()));
+await p.goto('http://localhost:47281/?scale=2'); await p.waitForTimeout(3000);
+console.log(await p.evaluate(() => [!!window.__wa, !!window.__waReady]));
+await b.close();

@@ -1,0 +1,13 @@
+import { chromium } from 'playwright-core';
+import os from 'node:os';
+const exe = `${os.homedir()}/.cache/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell`;
+const b = await chromium.launch({ executablePath: exe, args: ['--autoplay-policy=no-user-gesture-required'] });
+const p = await b.newPage({ viewport: { width: 1060, height: 520 } });
+const errs = []; p.on('pageerror', (e) => errs.push(String(e)));
+await p.goto('http://localhost:47281/?scale=2&tone=1'); await p.waitForFunction(() => window.__waReady);
+await p.setInputFiles('#file-skin', 'test-skins/synthetic-test.wsz');
+await p.waitForTimeout(1500);
+const info = await p.evaluate(() => { const s = window.__wa.main.skin; return { name: s.name, source: s.source, vc2: s.viscolors[2], regions: Object.keys(s.regions), clip: window.__wa.main.el.style.clipPath.slice(0, 60) }; });
+await p.screenshot({ path: 'shots/synthetic-skin-2x.png' });
+console.log(JSON.stringify({ info, errs }));
+await b.close();

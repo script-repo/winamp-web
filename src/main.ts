@@ -26,6 +26,7 @@ function layout() {
   main.setScale(scale); eq.setScale(scale);
   main.move(20, 20);
   eq.move(20, 20 + main.h * scale);
+  const pn = $('panel'); pn.style.left = `${40 + 275 * scale}px`; pn.style.right = 'auto'; pn.style.top = '20px'; pn.style.bottom = 'auto';
 }
 const setActive = (w: 'main' | 'eq') => { main.active = w === 'main'; eq.active = w === 'eq'; };
 main.onActivate = () => setActive('main');

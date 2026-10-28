@@ -3,3 +3,5 @@ dist/
 public/default-skin/
 shots/
 *.log
+test-skins/
+preview.pid

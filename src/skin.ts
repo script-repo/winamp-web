@@ -115,9 +115,13 @@ export async function loadDefaultSkin(): Promise<Skin> {
   if (defaultSkin) return defaultSkin;
   const skin: Skin = { name: 'Base skin (2.81 built-in)', bmp: {}, source: {}, viscolors: DEFAULT_VISCOLORS, regions: {}, pledit: {} };
   const base = `${import.meta.env.BASE_URL}default-skin/`;
-  await Promise.all(BITMAPS.map(async (n) => {
+  // The built-in resources have no nums_ex (O-07); a dev/preview server may answer a missing file
+  // with index.html, so only "BM" payloads are decoded and failures are non-fatal.
+  await Promise.all(BITMAPS.filter((n) => n !== 'nums_ex').map(async (n) => {
     const b = await fetchBytes(`${base}${n}.bmp`);
-    if (b) { skin.bmp[n] = toCanvas(b); skin.source[n] = 'default'; }
+    if (!b || b[0] !== 0x42 || b[1] !== 0x4d) return;
+    try { skin.bmp[n] = toCanvas(b); skin.source[n] = 'default'; }
+    catch (e) { console.warn('default bitmap decode failed', n, e); }
   }));
   defaultSkin = skin;
   return skin;
