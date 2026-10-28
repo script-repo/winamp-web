@@ -5,3 +5,6 @@ shots/
 *.log
 test-skins/
 preview.pid
+.env.local
+.env.*.local
+*.bak-*

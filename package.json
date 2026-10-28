@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "skin:default": "node scripts/copy-default-skin.mjs"
+    "skin:default": "node scripts/copy-default-skin.mjs",
+    "skin:gen": "node scripts/gen-original-skin.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.64.1",

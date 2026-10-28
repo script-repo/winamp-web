@@ -1,6 +1,7 @@
 // Copies the built-in default skin bitmaps (extracted from the original winamp.exe
 // resources during the RE trial) into public/default-skin/. PRIVATE LOCAL USE ONLY:
-// this artwork is Nullsoft's and must not be redistributed or committed.
+// this artwork is Nullsoft's and must not be redistributed or committed. Use it with the dev
+// server and ?baseSkin=local; production builds strip public/default-skin/ from dist/.
 import { mkdirSync, copyFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
