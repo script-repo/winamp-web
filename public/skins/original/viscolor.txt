@@ -1,0 +1,24 @@
+6,10,8, // background
+26,40,32, // grid dots
+214,255,150, // analyzer 1
+201,245,145, // analyzer 2
+188,236,139, // analyzer 3
+175,226,134, // analyzer 4
+162,217,129, // analyzer 5
+149,207,123, // analyzer 6
+136,198,118, // analyzer 7
+123,188,113, // analyzer 8
+109,179,107, // analyzer 9
+96,169,102, // analyzer 10
+83,160,97, // analyzer 11
+70,150,91, // analyzer 12
+57,141,86, // analyzer 13
+44,131,81, // analyzer 14
+31,122,75, // analyzer 15
+18,112,70, // analyzer 16
+196,255,214, // scope 1
+161,229,187, // scope 2
+126,203,159, // scope 3
+91,176,132, // scope 4
+56,150,104, // scope 5
+236,244,236, // peaks
